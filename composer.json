@@ -1,0 +1,24 @@
+{
+    "name": "karelwintersky/arris.toolkit.sphinx",
+    "description": "Arris mFramework Sphinx Toolkit",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Karel Wintersky",
+            "email": "karel.wintersky@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=7",
+        "ext-mbstring": "*",
+        "ext-pdo": "*",
+        "foolz/sphinxql-query-builder": "^2.1",
+        "karelwintersky/arris": "^1.53"
+    },
+    "autoload": {
+        "psr-4": {
+            "Arris\\Toolkit\\": ["interfaces", "src"]
+        }
+    }
+}
