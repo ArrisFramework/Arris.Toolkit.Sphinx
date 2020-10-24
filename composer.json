@@ -1,7 +1,9 @@
 {
     "name": "karelwintersky/arris.toolkit.sphinx",
-    "description": "Arris mFramework Sphinx Toolkit",
+    "description": "Arris µFramework Sphinx Toolkit",
+    "keywords": ["arris", "sphinx", "sphinxsearch", "manticoresearch" ],
     "type": "library",
+    "homepage": "https://github.com/KarelWintersky/Arris.Toolkit.Sphinx",
     "license": "MIT",
     "authors": [
         {
@@ -14,11 +16,12 @@
         "ext-mbstring": "*",
         "ext-pdo": "*",
         "foolz/sphinxql-query-builder": "^2.1",
-        "karelwintersky/arris": "^1.55.0"
+        "psr/log": "^1.1",
+        "karelwintersky/arris.toolkit.cli-console": "^0.9.0"
     },
     "autoload": {
         "psr-4": {
-            "Arris\\Toolkit\\": ["interfaces", "src"]
+            "Arris\\Toolkit\\": [ "interfaces", "src", "traits" ]
         }
     }
 }

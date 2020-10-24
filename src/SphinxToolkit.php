@@ -8,8 +8,7 @@ use Foolz\SphinxQL\Exception\ConnectionException;
 use Foolz\SphinxQL\Exception\SphinxQLException;
 use PDO;
 use PDOException;
-
-use Arris\CLIConsole;
+use Arris\Toolkit\CLIConsole;
 
 use Foolz\SphinxQL\Drivers\Mysqli\Connection;
 use Foolz\SphinxQL\Drivers\ResultSetInterface;
@@ -17,12 +16,10 @@ use Foolz\SphinxQL\Exception\DatabaseException;
 use Foolz\SphinxQL\Helper;
 use Foolz\SphinxQL\SphinxQL;
 
-use function Arris\setOption as setOption;
-use function Arris\mb_trim_text as mb_trim_text;
-use function Arris\mb_str_replace as mb_str_replace;
-
 class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzInterface
 {
+    use SphinxToolkitHelper;
+    
     /* =========================== DYNAMIC IMPLEMENTATION ================================ */
     /**
      * @var array
@@ -49,23 +46,23 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
     public function setRebuildIndexOptions(array $options = []):array
     {
         // на самом деле разворачиваем опции с установкой дефолтов
-        $this->rai_options['chunk_length'] = setOption($options, 'chunk_length', 500);
+        $this->rai_options['chunk_length'] = SphinxToolkitHelper::setOption($options, 'chunk_length', 500);
 
-        $this->rai_options['log_rows_inside_chunk'] = setOption($options, 'log_rows_inside_chunk', true);
-        $this->rai_options['log_total_rows_found'] = setOption($options, 'log_total_rows_found', true);
+        $this->rai_options['log_rows_inside_chunk'] = SphinxToolkitHelper::setOption($options, 'log_rows_inside_chunk', true);
+        $this->rai_options['log_total_rows_found'] = SphinxToolkitHelper::setOption($options, 'log_total_rows_found', true);
 
-        $this->rai_options['log_before_chunk'] = setOption($options, 'log_before_chunk', true);
-        $this->rai_options['log_after_chunk'] = setOption($options, 'log_after_chunk', true);
+        $this->rai_options['log_before_chunk'] = SphinxToolkitHelper::setOption($options, 'log_before_chunk', true);
+        $this->rai_options['log_after_chunk'] = SphinxToolkitHelper::setOption($options, 'log_after_chunk', true);
 
-        $this->rai_options['sleep_after_chunk'] = setOption($options, 'sleep_after_chunk', true);
+        $this->rai_options['sleep_after_chunk'] = SphinxToolkitHelper::setOption($options, 'sleep_after_chunk', true);
 
-        $this->rai_options['sleep_time'] = setOption($options, 'sleep_time', 1);
+        $this->rai_options['sleep_time'] = SphinxToolkitHelper::setOption($options, 'sleep_time', 1);
         if ($this->rai_options['sleep_time'] == 0) {
             $this->rai_options['sleep_after_chunk'] = false;
         }
 
-        $this->rai_options['log_before_index'] = setOption($options, 'log_before_index', true);
-        $this->rai_options['log_after_index'] = setOption($options, 'log_after_index', true);
+        $this->rai_options['log_before_index'] = SphinxToolkitHelper::setOption($options, 'log_before_index', true);
+        $this->rai_options['log_after_index'] = SphinxToolkitHelper::setOption($options, 'log_after_index', true);
 
         return $this->rai_options;
     } // setRebuildIndexOptions
@@ -313,33 +310,33 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
     {
         $opts = [
             // Строка, вставляемая перед ключевым словом. По умолчанию "<strong>".
-            'before_match'  =>  setOption($options, 'before_match', '<strong>'),
+            'before_match'  =>  SphinxToolkitHelper::setOption($options, 'before_match', '<strong>'),
 
             // Строка, вставляемая после ключевого слова. По умолчанию "</strong>".
-            'after_match'   =>  setOption($options, 'after_match', '</strong>'),
+            'after_match'   =>  SphinxToolkitHelper::setOption($options, 'after_match', '</strong>'),
             // Строка, вставляемая между частями фрагмента. по умолчанию "...".
             'chunk_separator' => '...',
 
             // НЕ РЕАЛИЗОВАНО: Максимальный размер фрагмента в символах. Integer, по умолчанию 256.
-            'limit'         =>  setOption($options, 'limit', 256),
+            'limit'         =>  SphinxToolkitHelper::setOption($options, 'limit', 256),
 
             // НЕ РЕАЛИЗОВАНО: Сколько слов необходимо выбрать вокруг каждого совпадающего с ключевыми словами блока. Integer, по умолчанию 5.
-            'around'         =>  setOption($options, 'around', 5),
+            'around'         =>  SphinxToolkitHelper::setOption($options, 'around', 5),
 
             // НЕ РЕАЛИЗОВАНО: Необходимо ли подсвечивать только точное совпадение с поисковой фразой, а не отдельные ключевые слова. Boolean, по умолчанию FALSE.
-            'exact_phrase'         =>  setOption($options, 'around', null),
+            'exact_phrase'         =>  SphinxToolkitHelper::setOption($options, 'around', null),
 
             // НЕ РЕАЛИЗОВАНО: Необходимо ли извлечь только единичный наиболее подходящий фрагмент. Boolean, по умолчанию FALSE.
-            'single_passage'         =>  setOption($options, 'single_passage', null),
+            'single_passage'         =>  SphinxToolkitHelper::setOption($options, 'single_passage', null),
 
         ];
 
         $target = strip_tags($source);
 
-        $target = mb_str_replace($needle, $opts['before_match'] . $needle . $opts['after_match'], $target);
+        $target = SphinxToolkitHelper::mb_str_replace($needle, $opts['before_match'] . $needle . $opts['after_match'], $target);
 
         if (($opts['limit'] > 0) && ( mb_strlen($source) > $opts['limit'] )) {
-            $target = mb_trim_text($target, $opts['limit'] ,true,false, $opts['chunk_separator']);
+            $target = SphinxToolkitHelper::mb_trim_text($target, $opts['limit'] ,true,false, $opts['chunk_separator']);
         }
 
         return $target;
@@ -373,23 +370,23 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
         self::$spql_connection_host = $sphinx_connection_host;
         self::$spql_connection_port = $sphinx_connection_port;
 
-        self::$rlo['chunk_length']          = setOption($options, 'chunk_length', 500);
+        self::$rlo['chunk_length']          = SphinxToolkitHelper::setOption($options, 'chunk_length', 500);
 
-        self::$rlo['log_rows_inside_chunk'] = setOption($options, 'log_rows_inside_chunk', true);
-        self::$rlo['log_total_rows_found']  = setOption($options, 'log_total_rows_found', true);
+        self::$rlo['log_rows_inside_chunk'] = SphinxToolkitHelper::setOption($options, 'log_rows_inside_chunk', true);
+        self::$rlo['log_total_rows_found']  = SphinxToolkitHelper::setOption($options, 'log_total_rows_found', true);
 
-        self::$rlo['log_before_chunk']      = setOption($options, 'log_before_chunk', true);
-        self::$rlo['log_after_chunk']       = setOption($options, 'log_after_chunk', true);
+        self::$rlo['log_before_chunk']      = SphinxToolkitHelper::setOption($options, 'log_before_chunk', true);
+        self::$rlo['log_after_chunk']       = SphinxToolkitHelper::setOption($options, 'log_after_chunk', true);
 
-        self::$rlo['sleep_after_chunk']     = setOption($options, 'sleep_after_chunk', true);
+        self::$rlo['sleep_after_chunk']     = SphinxToolkitHelper::setOption($options, 'sleep_after_chunk', true);
 
-        self::$rlo['sleep_time'] = setOption($options, 'sleep_time', 1);
+        self::$rlo['sleep_time'] = SphinxToolkitHelper::setOption($options, 'sleep_time', 1);
         if (self::$rlo['sleep_time'] == 0) {
             self::$rlo['sleep_after_chunk'] = false;
         }
 
-        self::$rlo['log_before_index']      = setOption($options, 'log_before_index', true);
-        self::$rlo['log_after_index']       = setOption($options, 'log_after_index', true);
+        self::$rlo['log_before_index']      = SphinxToolkitHelper::setOption($options, 'log_before_index', true);
+        self::$rlo['log_after_index']       = SphinxToolkitHelper::setOption($options, 'log_after_index', true);
     }
 
     public static function initConnection()
