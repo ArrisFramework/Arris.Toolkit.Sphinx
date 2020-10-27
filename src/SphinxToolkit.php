@@ -42,7 +42,6 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
         $this->sphinx_connection = $sphinx_connection;
     }
 
-
     public function setRebuildIndexOptions(array $options = []):array
     {
         // на самом деле разворачиваем опции с установкой дефолтов
@@ -74,16 +73,16 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
         $sphinx_connection = $this->sphinx_connection;
 
         // проверяем, существует ли индекс
-        if (!$this->checkIndexExist($sphinx_index))
+        if (! SphinxToolkitHelper::RTIndexCheckExist($this->sphinx_connection, $sphinx_index))
             throw new Exception("`{$sphinx_index}` not present", 1);
 
         $chunk_size = $this->rai_options['chunk_length'];
 
         // truncate
-        $sphinx_connection->query("TRUNCATE RTINDEX {$sphinx_index} WITH RECONFIGURE");
+        SphinxToolkitHelper::RTIndexTruncate($sphinx_connection, $sphinx_index);
 
         // get total count
-        $total_count = $this->mysql_GetRowCount($mysql_connection, $mysql_table, $condition);
+        $total_count = SphinxToolkitHelper::MySQL_GetRowsCount($mysql_connection, $mysql_table, $condition);
         $total_updated = 0;
 
         if ($this->rai_options['log_before_index'])
@@ -152,14 +151,14 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
         $chunk_size = $this->rai_options['chunk_length'];
 
         // проверяем, существует ли индекс
-        if (!$this->checkIndexExist($sphinx_index))
+        if (! SphinxToolkitHelper::RTIndexCheckExist($this->sphinx_connection, $sphinx_index))
             throw new Exception("`{$sphinx_index}` not present", 1);
 
         // truncate
-        $sphinx_connection->query("TRUNCATE RTINDEX {$sphinx_index} WITH RECONFIGURE");
+        SphinxToolkitHelper::RTIndexTruncate($sphinx_connection, $sphinx_index);
 
         // get total count
-        $total_count = $this->mysql_GetRowCount($mysql_connection, $mysql_table, $condition);
+        $total_count = SphinxToolkitHelper::MySQL_GetRowsCount($mysql_connection, $mysql_table, $condition);
         $total_updated = 0;
 
         if ($this->rai_options['log_before_index'])
@@ -281,29 +280,15 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
         return $query;
     }
 
-
-    /**
-     * @param PDO $pdo
-     * @param string $table
-     * @param string $condition
-     * @return int
-     * @throws PDOException
-     */
-    private function mysql_GetRowCount(PDO $pdo, string $table, string $condition)
-    {
-        $query = "SELECT COUNT(*) AS cnt FROM {$table}";
-        if ($condition != '') $query .= " WHERE {$condition}";
-
-        return $pdo->query($query)->fetchColumn();
-    } // mysql_GetRowCount
-
     public function checkIndexExist(string $sphinx_index)
     {
         $index_definition = $this->sphinx_connection->query("SHOW TABLES LIKE '{$sphinx_index}' ")->fetchAll();
 
         return count($index_definition) > 0;
     }
-
+    
+    
+    
     /* =========================== СТАТИЧЕСКИЕ МЕТОДЫ ==================================== */
 
     public static function EmulateBuildExcerpts($source, $needle, $options)

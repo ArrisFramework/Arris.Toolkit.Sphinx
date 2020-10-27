@@ -2,6 +2,8 @@
 
 namespace Arris\Toolkit;
 
+use PDO;
+
 /**
  * Trait SphinxToolkitHelper
  *
@@ -109,6 +111,76 @@ trait SphinxToolkitHelper
             $subject = implode($replace, $parts);
         }
         return $subject;
+    }
+    
+    /**
+     * @param PDO $connection
+     * @param $index
+     *
+     * @return array
+     */
+    public static function RTIndexGetStatus(PDO $connection, $index)
+    {
+        $query = "SHOW INDEX {$index} STATUS";
+        
+        $sth = $connection->query($query);
+        
+        $set = $sth->fetchAll();
+        
+        $json_set = [
+            'query_time_1min', 'query_time_5min', 'query_time_15min', 'query_time_total',
+            'found_rows_1min', 'found_rows_5min', 'found_rows_15min', 'found_rows_total'
+        ];
+        foreach ($json_set as $key) {
+            if (array_key_exists($key, $set)) {
+                $set[$key] = json_decode($set[$key], true);
+            }
+        }
+        
+        return $set;
+    }
+    
+    /**
+     * @param PDO $connection
+     * @param $index
+     * @return false|\PDOStatement
+     */
+    public static function RTIndexOptimize(PDO $connection, $index)
+    {
+        $query = "OPTIMIZE INDEX {$index}";
+        return $connection->query($query);
+    }
+    
+    /**
+     * @param PDO $connection
+     * @param $index
+     * @param bool $reconfigure
+     * @return bool
+     */
+    public static function RTIndexTruncate(PDO $connection, $index, $reconfigure = true)
+    {
+        $with = $reconfigure ? 'WITH RECONFIGURE' : '';
+        return (bool)$connection->query("TRUNCATE RTINDEX {$index} {$with}");
+    }
+    
+    /**
+     * @param PDO $connection
+     * @param $index
+     * @return bool
+     */
+    public static function RTIndexCheckExist(PDO $connection, $index)
+    {
+        $index_definition = $connection->query("SHOW TABLES LIKE '{$index}' ")->fetchAll();
+    
+        return count($index_definition) > 0;
+    }
+    
+    public static function MySQL_GetRowsCount(PDO $pdo, string $table, string $condition)
+    {
+        $query = "SELECT COUNT(*) AS cnt FROM {$table}";
+        if ($condition != '') $query .= " WHERE {$condition}";
+    
+        return $pdo->query($query)->fetchColumn();
     }
     
 }
