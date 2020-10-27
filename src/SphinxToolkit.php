@@ -80,7 +80,7 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
         $chunk_size = $this->rai_options['chunk_length'];
 
         // truncate
-        $sphinx_connection->query("TRUNCATE RTINDEX {$sphinx_index} ");
+        $sphinx_connection->query("TRUNCATE RTINDEX {$sphinx_index} WITH RECONFIGURE");
 
         // get total count
         $total_count = $this->mysql_GetRowCount($mysql_connection, $mysql_table, $condition);
@@ -156,7 +156,7 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
             throw new Exception("`{$sphinx_index}` not present", 1);
 
         // truncate
-        $sphinx_connection->query("TRUNCATE RTINDEX {$sphinx_index} ");
+        $sphinx_connection->query("TRUNCATE RTINDEX {$sphinx_index} WITH RECONFIGURE");
 
         // get total count
         $total_count = $this->mysql_GetRowCount($mysql_connection, $mysql_table, $condition);

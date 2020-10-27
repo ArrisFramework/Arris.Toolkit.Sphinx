@@ -85,19 +85,19 @@ trait SphinxToolkitHelper
         if (is_array($subject)) {
             // call mb_replace for each single string in $subject
             foreach ($subject as &$string) {
-                $string = \Arris\mb_str_replace($search, $replace, $string, $c);
+                $string = SphinxToolkitHelper::mb_str_replace($search, $replace, $string, $c);
                 $count += $c;
             }
         } elseif (is_array($search)) {
             if (!is_array($replace)) {
                 foreach ($search as &$string) {
-                    $subject = \Arris\mb_str_replace($string, $replace, $subject, $c);
+                    $subject = SphinxToolkitHelper::mb_str_replace($string, $replace, $subject, $c);
                     $count += $c;
                 }
             } else {
                 $n = max(count($search), count($replace));
                 while ($n--) {
-                    $subject = \Arris\mb_str_replace(current($search), current($replace), $subject, $c);
+                    $subject = SphinxToolkitHelper::mb_str_replace(current($search), current($replace), $subject, $c);
                     $count += $c;
                     next($search);
                     next($replace);
@@ -109,7 +109,6 @@ trait SphinxToolkitHelper
             $subject = implode($replace, $parts);
         }
         return $subject;
-    
     }
     
 }
