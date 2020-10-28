@@ -74,7 +74,7 @@ interface SphinxToolkitFoolzInterface {
      *
      * @param string $index_name        -- индекс
      * @param string $field             -- поле для поиска индекса
-     * @param null $field_value         -- значение для поиска индекса
+     * @param null $field_value         -- значение для поиска индекса (важно: приводится к INTEGER)
      * @return ResultSetInterface|null
      *
      * @throws DatabaseException
@@ -82,7 +82,16 @@ interface SphinxToolkitFoolzInterface {
      * @throws SphinxQLException
      */
     public static function rt_DeleteIndex(string $index_name, string $field, $field_value = null);
-
+    
+    /**
+     * Делает truncate index с реконфигурацией по умолчанию
+     *
+     * @param string $index_name
+     * @param bool $is_reconfigure
+     * @return bool
+     */
+    public static function rt_TruncateIndex(string $index_name, bool $is_reconfigure = true);
+    
     /**
      * @param PDO $pdo_connection
      * @param string $sql_source_table

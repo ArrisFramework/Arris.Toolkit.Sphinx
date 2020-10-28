@@ -430,8 +430,23 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
         return self::createInstance()
             ->delete()
             ->from($index_name)
-            ->where($field, '=', $field_value)
+            ->where($field, '=', (int)$field_value)
             ->execute();
+    }
+    
+    /**
+     * Делает truncate index с реконфигурацией по умолчанию
+     *
+     * @param string $index_name
+     * @param bool $is_reconfigure
+     * @return bool
+     */
+    public static function rt_TruncateIndex(string $index_name, bool $is_reconfigure = true)
+    {
+        if (empty($index_name)) return false;
+        $with = $is_reconfigure ? 'WITH RECONFIGURE' : '';
+        
+        return (bool)self::createInstance()->query("TRUNCATE RTINDEX {$index_name} {$with}");
     }
 
     public static function rt_RebuildAbstractIndex(PDO $pdo_connection, string $sql_source_table, string $sphinx_index, Closure $make_updateset_method, string $condition = '')
