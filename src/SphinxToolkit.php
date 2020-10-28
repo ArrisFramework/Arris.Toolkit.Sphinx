@@ -453,7 +453,7 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
     {
         $chunk_size = self::$rlo['chunk_length'];
 
-        self::internal_TruncateIndex($sphinx_index);
+        self::rt_TruncateIndex($sphinx_index);
 
         $total_count
             = $pdo_connection
@@ -509,15 +509,6 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
             CLIConsole::say("Total updated <strong>{$total_updated}</strong> elements for <font color='yellow'>{$sphinx_index}</font> RT-index. <br>");
 
         return $total_updated;
-    }
-
-    /**
-     *
-     * @param string $index_name
-     */
-    private static function internal_TruncateIndex(string $index_name)
-    {
-        (new Helper(self::$spql_connection))->truncateRtIndex($index_name);
     }
 
     /**
