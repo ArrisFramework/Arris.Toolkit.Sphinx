@@ -430,7 +430,21 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
         return self::createInstance()
             ->delete()
             ->from($index_name)
-            ->where($field, '=', (int)$field_value)
+            ->where($field, '=', $field_value)
+            ->execute();
+    }
+    
+    /**
+     * @inheritDoc
+     */
+    public static function rt_DeleteIndexMatch(string $index_name, string $field, $field_value = '')
+    {
+        if (is_null($field_value)) return null;
+    
+        return self::createInstance()
+            ->delete()
+            ->from($index_name)
+            ->match($field, $field_value)
             ->execute();
     }
     
@@ -530,8 +544,9 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
             ->set($updateset)
             ->execute();
     }
-
-
+    
+    
+    
 }
 
 # -eof-

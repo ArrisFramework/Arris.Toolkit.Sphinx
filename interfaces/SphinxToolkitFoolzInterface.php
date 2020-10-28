@@ -56,7 +56,6 @@ interface SphinxToolkitFoolzInterface {
 
     /**
      * Замещает (REPLACE) реалтайм-индекс по набору данных
-     * с созданием коннекшена "сейчас"
      *
      * @param string $index_name
      * @param array $updateset
@@ -69,12 +68,15 @@ interface SphinxToolkitFoolzInterface {
     public static function rt_ReplaceIndex(string $index_name, array $updateset);
 
     /**
-     * Удаляет строку реалтайм-индекса
-     * с созданием коннекшена "сейчас"
+     * Удаляет строку реалтайм-индекса по значению нестрокового поля.
+     *
+     * @todo: при передаче параметра требуется его приведение к типу поля. Для поля 'id' это тип INT.
+     *
+     * В случае multi-valued атрибута нужно удалять строки для каждого значения атрибута.
      *
      * @param string $index_name        -- индекс
      * @param string $field             -- поле для поиска индекса
-     * @param null $field_value         -- значение для поиска индекса (важно: приводится к INTEGER)
+     * @param null $field_value         -- значение для поиска индекса
      * @return ResultSetInterface|null
      *
      * @throws DatabaseException
@@ -82,6 +84,21 @@ interface SphinxToolkitFoolzInterface {
      * @throws SphinxQLException
      */
     public static function rt_DeleteIndex(string $index_name, string $field, $field_value = null);
+    
+    /**
+     * Удаляет строку реалтайм-индекса по значению текстового поля, например '@title поликлиника'
+     * ВАЖНО: пустое значение поля $field_value удалит ВСЕ строки индекса
+     *
+     * @param string $index_name        -- индекс
+     * @param string $field             -- поле для поиска индекса
+     * @param string $field_value       -- значение для поиска индекса (важно: тип значения должен совпадать)
+     * @return ResultSetInterface|null
+     *
+     * @throws DatabaseException
+     * @throws ConnectionException
+     * @throws SphinxQLException
+     */
+    public static function rt_DeleteIndexMatch(string $index_name, string $field, $field_value = '');
     
     /**
      * Делает truncate index с реконфигурацией по умолчанию
