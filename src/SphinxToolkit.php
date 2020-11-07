@@ -373,9 +373,9 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
     /**
      * @inheritDoc
      */
-    public static function getInstance()
+    public static function getInstance($connection)
     {
-        return (new SphinxQL(self::$spql_connection));
+        return (new SphinxQL($connection));
     }
     
     /**
@@ -384,7 +384,7 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
     public static function createInstance()
     {
         self::$spql_connection = self::initConnection();
-        self::$spql_instance = self::getInstance();
+        self::$spql_instance = self::getInstance(self::$spql_connection);
         
         return self::$spql_instance;
     }
@@ -523,7 +523,7 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
     
     public static function showMeta()
     {
-        (new Helper(self::$spql_connection))->showMeta()->execute()->fetchAllAssoc();
+        return (new Helper(self::$spql_connection))->showMeta()->execute()->fetchAllAssoc();
     }
 
     /**

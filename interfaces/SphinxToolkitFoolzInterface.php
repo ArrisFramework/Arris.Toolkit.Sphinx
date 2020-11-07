@@ -3,6 +3,7 @@
 namespace Arris\Toolkit;
 
 use Closure;
+use Foolz\SphinxQL\Drivers\ConnectionInterface;
 use Foolz\SphinxQL\Drivers\ResultSetInterface;
 use Foolz\SphinxQL\Exception\ConnectionException;
 use Foolz\SphinxQL\Exception\DatabaseException;
@@ -30,6 +31,8 @@ interface SphinxToolkitFoolzInterface {
 
     /**
      * Создает коннекшен и устанавливает параметры подключения: хост и порт
+     *
+     * @return ConnectionInterface
      */
     public static function initConnection();
 
@@ -121,13 +124,14 @@ interface SphinxToolkitFoolzInterface {
      * @throws SphinxQLException
      */
     public static function rt_RebuildAbstractIndex(PDO $pdo_connection, string $sql_source_table, string $sphinx_index, Closure $make_updateset_method, string $condition = '');
-
+    
     /**
      * Создает инстанс на основе сохраненного в классе коннекшена
      *
+     * @param ConnectionInterface $connection
      * @return SphinxQL
      */
-    public static function getInstance();
+    public static function getInstance($connection);
     
     /**
      * Возвращает META-информацию (после запроса)
