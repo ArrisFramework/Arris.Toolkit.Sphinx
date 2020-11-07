@@ -2,6 +2,8 @@
 
 namespace Arris\Toolkit;
 
+use Foolz\SphinxQL\Drivers\ConnectionInterface;
+use Foolz\SphinxQL\Helper;
 use PDO;
 
 /**
@@ -232,5 +234,17 @@ trait SphinxToolkitHelper
         
         return $target;
     } // EmulateBuildExcerpts
+    
+    /**
+     *
+     * @param ConnectionInterface $connection
+     * @throws \Foolz\SphinxQL\Exception\ConnectionException
+     * @throws \Foolz\SphinxQL\Exception\DatabaseException
+     * @throws \Foolz\SphinxQL\Exception\SphinxQLException
+     */
+    public static function showMeta(ConnectionInterface $connection)
+    {
+        (new Helper($connection))->showMeta()->execute()->fetchAllAssoc();
+    }
     
 }

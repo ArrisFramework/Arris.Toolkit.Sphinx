@@ -133,12 +133,4 @@ interface SphinxToolkitFoolzInterface {
      */
     public static function getInstance($connection);
     
-    /**
-     * Возвращает META-информацию (после запроса)
-     *
-     * @throws ConnectionException
-     * @throws DatabaseException
-     * @throws SphinxQLException
-     */
-    public static function showMeta();
 }

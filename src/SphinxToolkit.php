@@ -523,11 +523,6 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
         return $total_updated;
     }
     
-    public static function showMeta()
-    {
-        return (new Helper(self::$spql_connection))->showMeta()->execute()->fetchAllAssoc();
-    }
-
     /**
      *
      * @param string $index_name
