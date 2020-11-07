@@ -5,6 +5,7 @@ namespace Arris\Toolkit;
 use Closure;
 use Exception;
 use PDO;
+use Psr\Log\LoggerInterface;
 
 /**
  * Interface __SphinxToolkitMysqliInterface
@@ -14,14 +15,15 @@ use PDO;
  * @package Arris\Toolkit
  */
 interface SphinxToolkitMysqliInterface {
-
+    
     /**
      * SphinxToolkit constructor.
      *
      * @param PDO $mysql_connection
      * @param PDO $sphinx_connection
+     * @param LoggerInterface|null $logger
      */
-    public function __construct(PDO $mysql_connection, PDO $sphinx_connection);
+    public function __construct(PDO $mysql_connection, PDO $sphinx_connection, LoggerInterface $logger = null);
 
     /**
      * Устанавливает опции для перестроителя RT-индекса
@@ -61,19 +63,4 @@ interface SphinxToolkitMysqliInterface {
      */
     public function rebuildAbstractIndexMVA(string $mysql_table, string $sphinx_index, Closure $make_updateset_method, string $condition = '', array $mva_indexes_list = []):int;
 
-    /**
-     * Эмулирует BuildExcerpts из SphinxAPI
-     *
-     * @param $source
-     * @param $needle
-     * @param $options
-     * 'before_match' => '<strong>',    // Строка, вставляемая перед ключевым словом. По умолчанию "<strong>".
-     * 'after_match' => '</strong>',    // Строка, вставляемая после ключевого слова. По умолчанию "</strong>".
-     * 'chunk_separator' => '...',      // Строка, вставляемая между частями фрагмента. по умолчанию "...".
-     *
-     * опции 'limit', 'around', 'exact_phrase' и 'single_passage' в эмуляции не реализованы
-     *
-     * @return mixed
-     */
-    public static function EmulateBuildExcerpts($source, $needle, $options);
 }

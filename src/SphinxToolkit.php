@@ -15,6 +15,7 @@ use Foolz\SphinxQL\Drivers\ResultSetInterface;
 use Foolz\SphinxQL\Exception\DatabaseException;
 use Foolz\SphinxQL\Helper;
 use Foolz\SphinxQL\SphinxQL;
+use Psr\Log\LoggerInterface;
 
 class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzInterface
 {
@@ -35,16 +36,22 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
      * @var PDO
      */
     private $sphinx_connection;
+    
+    /**
+     * @var LoggerInterface
+     */
+    private $logger;
 
-    public function __construct(PDO $mysql_connection, PDO $sphinx_connection)
+    public function __construct(PDO $mysql_connection, PDO $sphinx_connection, LoggerInterface $logger = null)
     {
         $this->mysql_connection = $mysql_connection;
         $this->sphinx_connection = $sphinx_connection;
+        $this->logger = $logger;
     }
 
     public function setRebuildIndexOptions(array $options = []):array
     {
-        // на самом деле разворачиваем опции с установкой дефолтов
+        // разворачиваем опции с установкой дефолтов
         $this->rai_options['chunk_length'] = SphinxToolkitHelper::setOption($options, 'chunk_length', 500);
 
         $this->rai_options['log_rows_inside_chunk'] = SphinxToolkitHelper::setOption($options, 'log_rows_inside_chunk', true);
@@ -287,46 +294,6 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
         return count($index_definition) > 0;
     }
     
-    
-    
-    /* =========================== СТАТИЧЕСКИЕ МЕТОДЫ ==================================== */
-
-    public static function EmulateBuildExcerpts($source, $needle, $options)
-    {
-        $opts = [
-            // Строка, вставляемая перед ключевым словом. По умолчанию "<strong>".
-            'before_match'  =>  SphinxToolkitHelper::setOption($options, 'before_match', '<strong>'),
-
-            // Строка, вставляемая после ключевого слова. По умолчанию "</strong>".
-            'after_match'   =>  SphinxToolkitHelper::setOption($options, 'after_match', '</strong>'),
-            // Строка, вставляемая между частями фрагмента. по умолчанию "...".
-            'chunk_separator' => '...',
-
-            // НЕ РЕАЛИЗОВАНО: Максимальный размер фрагмента в символах. Integer, по умолчанию 256.
-            'limit'         =>  SphinxToolkitHelper::setOption($options, 'limit', 256),
-
-            // НЕ РЕАЛИЗОВАНО: Сколько слов необходимо выбрать вокруг каждого совпадающего с ключевыми словами блока. Integer, по умолчанию 5.
-            'around'         =>  SphinxToolkitHelper::setOption($options, 'around', 5),
-
-            // НЕ РЕАЛИЗОВАНО: Необходимо ли подсвечивать только точное совпадение с поисковой фразой, а не отдельные ключевые слова. Boolean, по умолчанию FALSE.
-            'exact_phrase'         =>  SphinxToolkitHelper::setOption($options, 'around', null),
-
-            // НЕ РЕАЛИЗОВАНО: Необходимо ли извлечь только единичный наиболее подходящий фрагмент. Boolean, по умолчанию FALSE.
-            'single_passage'         =>  SphinxToolkitHelper::setOption($options, 'single_passage', null),
-
-        ];
-
-        $target = strip_tags($source);
-
-        $target = SphinxToolkitHelper::mb_str_replace($needle, $opts['before_match'] . $needle . $opts['after_match'], $target);
-
-        if (($opts['limit'] > 0) && ( mb_strlen($source) > $opts['limit'] )) {
-            $target = SphinxToolkitHelper::mb_trim_text($target, $opts['limit'] ,true,false, $opts['chunk_separator']);
-        }
-
-        return $target;
-    } // EmulateBuildExcerpts
-
     /* =========================== STATIC IMPLEMENTATION ================================= */
 
     /**
@@ -334,7 +301,7 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
      *
      * @var array
      */
-    private static $rlo = [];
+    private static $spql_options = [];
 
     /**
      * @var Connection
@@ -349,58 +316,82 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
      * @var Connection
      */
     private static $spql_connection;
-
-    public static function init(string $sphinx_connection_host, string $sphinx_connection_port, $options = [])
+    
+    /**
+     * @var SphinxQL
+     */
+    private static $spql_instance;
+    
+    /**
+     * @var LoggerInterface
+     */
+    private static $spql_logger;
+    
+    /**
+     * @inheritDoc
+     */
+    public static function init(string $sphinx_connection_host, string $sphinx_connection_port, $options = [], LoggerInterface $logger = null)
     {
         self::$spql_connection_host = $sphinx_connection_host;
         self::$spql_connection_port = $sphinx_connection_port;
 
-        self::$rlo['chunk_length']          = SphinxToolkitHelper::setOption($options, 'chunk_length', 500);
+        self::$spql_options['chunk_length']          = SphinxToolkitHelper::setOption($options, 'chunk_length', 500);
 
-        self::$rlo['log_rows_inside_chunk'] = SphinxToolkitHelper::setOption($options, 'log_rows_inside_chunk', true);
-        self::$rlo['log_total_rows_found']  = SphinxToolkitHelper::setOption($options, 'log_total_rows_found', true);
+        self::$spql_options['log_rows_inside_chunk'] = SphinxToolkitHelper::setOption($options, 'log_rows_inside_chunk', true);
+        self::$spql_options['log_total_rows_found']  = SphinxToolkitHelper::setOption($options, 'log_total_rows_found', true);
 
-        self::$rlo['log_before_chunk']      = SphinxToolkitHelper::setOption($options, 'log_before_chunk', true);
-        self::$rlo['log_after_chunk']       = SphinxToolkitHelper::setOption($options, 'log_after_chunk', true);
+        self::$spql_options['log_before_chunk']      = SphinxToolkitHelper::setOption($options, 'log_before_chunk', true);
+        self::$spql_options['log_after_chunk']       = SphinxToolkitHelper::setOption($options, 'log_after_chunk', true);
 
-        self::$rlo['sleep_after_chunk']     = SphinxToolkitHelper::setOption($options, 'sleep_after_chunk', true);
+        self::$spql_options['sleep_after_chunk']     = SphinxToolkitHelper::setOption($options, 'sleep_after_chunk', true);
 
-        self::$rlo['sleep_time'] = SphinxToolkitHelper::setOption($options, 'sleep_time', 1);
-        if (self::$rlo['sleep_time'] == 0) {
-            self::$rlo['sleep_after_chunk'] = false;
+        self::$spql_options['sleep_time'] = SphinxToolkitHelper::setOption($options, 'sleep_time', 1);
+        if (self::$spql_options['sleep_time'] == 0) {
+            self::$spql_options['sleep_after_chunk'] = false;
         }
 
-        self::$rlo['log_before_index']      = SphinxToolkitHelper::setOption($options, 'log_before_index', true);
-        self::$rlo['log_after_index']       = SphinxToolkitHelper::setOption($options, 'log_after_index', true);
+        self::$spql_options['log_before_index']      = SphinxToolkitHelper::setOption($options, 'log_before_index', true);
+        self::$spql_options['log_after_index']       = SphinxToolkitHelper::setOption($options, 'log_after_index', true);
+        
+        self::$spql_logger = $logger;
     }
-
+    
+    /**
+     * @inheritDoc
+     */
     public static function initConnection()
     {
-        $conn = new Connection();
-        $conn->setParams([
+        $connection = new Connection();
+        $connection->setParams([
             'host' => self::$spql_connection_host,
             'port' => self::$spql_connection_port
         ]);
 
-        self::$spql_connection = $conn;
+        return $connection;
     }
-
+    
+    /**
+     * @inheritDoc
+     */
     public static function getInstance()
     {
         return (new SphinxQL(self::$spql_connection));
     }
-
+    
+    /**
+     * @inheritDoc
+     */
     public static function createInstance()
     {
-        $conn = new Connection();
-        $conn->setParams([
-            'host' => self::$spql_connection_host,
-            'port' => self::$spql_connection_port
-        ]);
-
-        return (new SphinxQL($conn));
+        self::$spql_connection = self::initConnection();
+        self::$spql_instance = self::getInstance();
+        
+        return self::$spql_instance;
     }
-
+    
+    /**
+     * @inheritDoc
+     */
     public static function rt_ReplaceIndex(string $index_name, array $updateset)
     {
         if (empty($updateset)) return null;
@@ -411,7 +402,10 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
             ->set($updateset)
             ->execute();
     }
-
+    
+    /**
+     * @inheritDoc
+     */
     public static function rt_UpdateIndex(string $index_name, array $updateset)
     {
         if (empty($updateset)) return null;
@@ -422,7 +416,10 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
             ->set($updateset)
             ->execute();
     }
-
+    
+    /**
+     * @inheritDoc
+     */
     public static function rt_DeleteIndex(string $index_name, string $field, $field_value = null)
     {
         if (is_null($field_value)) return null;
@@ -449,11 +446,7 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
     }
     
     /**
-     * Делает truncate index с реконфигурацией по умолчанию
-     *
-     * @param string $index_name
-     * @param bool $is_reconfigure
-     * @return bool
+     * @inheritDoc
      */
     public static function rt_TruncateIndex(string $index_name, bool $is_reconfigure = true)
     {
@@ -462,10 +455,13 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
         
         return (bool)self::createInstance()->query("TRUNCATE RTINDEX {$index_name} {$with}");
     }
-
+    
+    /**
+     * @inheritDoc
+     */
     public static function rt_RebuildAbstractIndex(PDO $pdo_connection, string $sql_source_table, string $sphinx_index, Closure $make_updateset_method, string $condition = '')
     {
-        $chunk_size = self::$rlo['chunk_length'];
+        $chunk_size = self::$spql_options['chunk_length'];
 
         self::rt_TruncateIndex($sphinx_index);
 
@@ -475,17 +471,17 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
             ->fetchColumn();
         $total_updated = 0;
 
-        if (self::$rlo['log_before_index'])
+        if (self::$spql_options['log_before_index'])
             CLIConsole::say("<font color='yellow'>[{$sphinx_index}]</font> index : ", false);
 
-        if (self::$rlo['log_total_rows_found'])
+        if (self::$spql_options['log_total_rows_found'])
             CLIConsole::say("<font color='green'>{$total_count}</font> elements found for rebuild.");
 
         // iterate chunks
         for ($i = 0; $i < ceil($total_count / $chunk_size); $i++) {
             $offset = $i * $chunk_size;
 
-            if (self::$rlo['log_before_chunk']) CLIConsole::say("Rebuilding elements from <font color='green'>{$offset}</font>, <font color='yellow'>{$chunk_size}</font> count... " , false);
+            if (self::$spql_options['log_before_chunk']) CLIConsole::say("Rebuilding elements from <font color='green'>{$offset}</font>, <font color='yellow'>{$chunk_size}</font> count... " , false);
 
             $query_chunk_data = "SELECT * FROM {$sql_source_table} ";
             $query_chunk_data.= $condition != '' ? " WHERE {$condition} " : ' ';
@@ -495,7 +491,7 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
 
             // iterate inside chunk
             while ($item = $sth->fetch()) {
-                if (self::$rlo['log_rows_inside_chunk'])
+                if (self::$spql_options['log_rows_inside_chunk'])
                     CLIConsole::say("{$sql_source_table}: {$item['id']}");
 
                 $update_set = $make_updateset_method($item);
@@ -505,24 +501,29 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
                 $total_updated++;
             } // while
 
-            $breakline_after_chunk = !self::$rlo['sleep_after_chunk'];
+            $breakline_after_chunk = !self::$spql_options['sleep_after_chunk'];
 
-            if (self::$rlo['log_after_chunk']) {
+            if (self::$spql_options['log_after_chunk']) {
                 CLIConsole::say("Updated RT-index <font color='yellow'>{$sphinx_index}</font>.", $breakline_after_chunk);
             } else {
                 CLIConsole::say("<strong>Ok</strong>", $breakline_after_chunk);
             }
 
-            if (self::$rlo['sleep_after_chunk']) {
-                CLIConsole::say("  ZZZZzzz for " . self::$rlo['sleep_time'] . " second(s)... ", FALSE);
-                sleep(self::$rlo['sleep_time']);
+            if (self::$spql_options['sleep_after_chunk']) {
+                CLIConsole::say("  ZZZZzzz for " . self::$spql_options['sleep_time'] . " second(s)... ", FALSE);
+                sleep(self::$spql_options['sleep_time']);
                 CLIConsole::say("I woke up!");
             }
         } // for
-        if (self::$rlo['log_after_index'])
+        if (self::$spql_options['log_after_index'])
             CLIConsole::say("Total updated <strong>{$total_updated}</strong> elements for <font color='yellow'>{$sphinx_index}</font> RT-index. <br>");
 
         return $total_updated;
+    }
+    
+    public static function showMeta()
+    {
+        (new Helper(self::$spql_connection))->showMeta()->execute()->fetchAllAssoc();
     }
 
     /**

@@ -183,4 +183,54 @@ trait SphinxToolkitHelper
         return $pdo->query($query)->fetchColumn();
     }
     
+    /**
+     * Эмулирует BuildExcerpts из SphinxAPI
+     *
+     * @param $source
+     * @param $needle
+     * @param $options
+     * 'before_match' => '<strong>',    // Строка, вставляемая перед ключевым словом. По умолчанию "<strong>".
+     * 'after_match' => '</strong>',    // Строка, вставляемая после ключевого слова. По умолчанию "</strong>".
+     * 'chunk_separator' => '...',      // Строка, вставляемая между частями фрагмента. по умолчанию "...".
+     *
+     * опции 'limit', 'around', 'exact_phrase' и 'single_passage' в эмуляции не реализованы
+     *
+     * @return mixed
+     */
+    public static function EmulateBuildExcerpts($source, $needle, $options)
+    {
+        $opts = [
+            // Строка, вставляемая перед ключевым словом. По умолчанию "<strong>".
+            'before_match'  =>  SphinxToolkitHelper::setOption($options, 'before_match', '<strong>'),
+            
+            // Строка, вставляемая после ключевого слова. По умолчанию "</strong>".
+            'after_match'   =>  SphinxToolkitHelper::setOption($options, 'after_match', '</strong>'),
+            // Строка, вставляемая между частями фрагмента. по умолчанию "...".
+            'chunk_separator' => '...',
+            
+            // НЕ РЕАЛИЗОВАНО: Максимальный размер фрагмента в символах. Integer, по умолчанию 256.
+            'limit'         =>  SphinxToolkitHelper::setOption($options, 'limit', 256),
+            
+            // НЕ РЕАЛИЗОВАНО: Сколько слов необходимо выбрать вокруг каждого совпадающего с ключевыми словами блока. Integer, по умолчанию 5.
+            'around'         =>  SphinxToolkitHelper::setOption($options, 'around', 5),
+            
+            // НЕ РЕАЛИЗОВАНО: Необходимо ли подсвечивать только точное совпадение с поисковой фразой, а не отдельные ключевые слова. Boolean, по умолчанию FALSE.
+            'exact_phrase'         =>  SphinxToolkitHelper::setOption($options, 'around', null),
+            
+            // НЕ РЕАЛИЗОВАНО: Необходимо ли извлечь только единичный наиболее подходящий фрагмент. Boolean, по умолчанию FALSE.
+            'single_passage'         =>  SphinxToolkitHelper::setOption($options, 'single_passage', null),
+        
+        ];
+        
+        $target = strip_tags($source);
+        
+        $target = SphinxToolkitHelper::mb_str_replace($needle, $opts['before_match'] . $needle . $opts['after_match'], $target);
+        
+        if (($opts['limit'] > 0) && ( mb_strlen($source) > $opts['limit'] )) {
+            $target = SphinxToolkitHelper::mb_trim_text($target, $opts['limit'] ,true,false, $opts['chunk_separator']);
+        }
+        
+        return $target;
+    } // EmulateBuildExcerpts
+    
 }

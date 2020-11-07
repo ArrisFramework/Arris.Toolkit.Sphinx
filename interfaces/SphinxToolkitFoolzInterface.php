@@ -29,7 +29,7 @@ interface SphinxToolkitFoolzInterface {
     public static function init(string $sphinx_connection_host, string $sphinx_connection_port, $options = []);
 
     /**
-     * Создает коннекшен для множественных обновлений (в крон-скриптах, к примеру, вызывается после init() )
+     * Создает коннекшен и устанавливает параметры подключения: хост и порт
      */
     public static function initConnection();
 
@@ -123,9 +123,18 @@ interface SphinxToolkitFoolzInterface {
     public static function rt_RebuildAbstractIndex(PDO $pdo_connection, string $sql_source_table, string $sphinx_index, Closure $make_updateset_method, string $condition = '');
 
     /**
-     * Получает инстанс (для множественных обновлений)
+     * Создает инстанс на основе сохраненного в классе коннекшена
      *
      * @return SphinxQL
      */
     public static function getInstance();
+    
+    /**
+     * Возвращает META-информацию (после запроса)
+     *
+     * @throws ConnectionException
+     * @throws DatabaseException
+     * @throws SphinxQLException
+     */
+    public static function showMeta();
 }
