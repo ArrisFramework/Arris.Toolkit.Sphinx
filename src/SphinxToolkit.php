@@ -184,6 +184,10 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
             $query_chunk_data = " SELECT * FROM {$mysql_table} ";
             $query_chunk_data.= $condition != '' ? " WHERE {$condition} " : '';
             $query_chunk_data.= " ORDER BY id DESC LIMIT {$offset}, {$chunk_size} ";
+            
+            /*$query_chunk_data = vsprintf("SELECT * FROM %s WHERE 1 = 1 %s ORDER BY id DESC LIMIT %s, %s", [
+                $mysql_table, ($condition != '' ? " AND {$condition} " : ''), $offset, $chunk_size
+            ]);*/
 
             $sth = $mysql_connection->query($query_chunk_data);
 
@@ -469,13 +473,12 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
             = $pdo_connection
             ->query("SELECT COUNT(*) as cnt FROM {$sql_source_table} " . ($condition != '' ? " WHERE {$condition} " : ' ') )
             ->fetchColumn();
+        
         $total_updated = 0;
 
-        if (self::$spql_options['log_before_index'])
-            CLIConsole::say("<font color='yellow'>[{$sphinx_index}]</font> index : ", false);
+        if (self::$spql_options['log_before_index']) CLIConsole::say("<font color='yellow'>[{$sphinx_index}]</font> index : ", false);
 
-        if (self::$spql_options['log_total_rows_found'])
-            CLIConsole::say("<font color='green'>{$total_count}</font> elements found for rebuild.");
+        if (self::$spql_options['log_total_rows_found']) CLIConsole::say("<font color='green'>{$total_count}</font> elements found for rebuild.");
 
         // iterate chunks
         for ($i = 0; $i < ceil($total_count / $chunk_size); $i++) {
@@ -491,10 +494,9 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
 
             // iterate inside chunk
             while ($item = $sth->fetch()) {
-                if (self::$spql_options['log_rows_inside_chunk'])
-                    CLIConsole::say("{$sql_source_table}: {$item['id']}");
+                if (self::$spql_options['log_rows_inside_chunk']) CLIConsole::say("{$sql_source_table}: {$item['id']}");
 
-                $update_set = $make_updateset_method($item);
+                $update_set = $make_updateset_method($item); // call closure
 
                 self::internal_ReplaceIndex($sphinx_index, $update_set);
 
@@ -515,8 +517,8 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
                 CLIConsole::say("I woke up!");
             }
         } // for
-        if (self::$spql_options['log_after_index'])
-            CLIConsole::say("Total updated <strong>{$total_updated}</strong> elements for <font color='yellow'>{$sphinx_index}</font> RT-index. <br>");
+        
+        if (self::$spql_options['log_after_index']) CLIConsole::say("Total updated <strong>{$total_updated}</strong> elements for <font color='yellow'>{$sphinx_index}</font> RT-index. <br>");
 
         return $total_updated;
     }
@@ -539,7 +541,7 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
     {
         if (empty($updateset)) return null;
 
-        return self::getInstance()
+        return self::getInstance(self::$spql_connection)
             ->replace()
             ->into($index_name)
             ->set($updateset)
