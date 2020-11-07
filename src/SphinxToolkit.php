@@ -4,6 +4,7 @@ namespace Arris\Toolkit;
 
 use Closure;
 use Exception;
+use Foolz\SphinxQL\Drivers\ConnectionInterface;
 use Foolz\SphinxQL\Exception\ConnectionException;
 use Foolz\SphinxQL\Exception\SphinxQLException;
 use PDO;
@@ -317,7 +318,7 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
      */
     private static $spql_connection_port;
     /**
-     * @var Connection
+     * @var ConnectionInterface
      */
     private static $spql_connection;
     
@@ -522,6 +523,79 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
 
         return $total_updated;
     }
+    
+    
+    /**
+     *
+     *
+     * @param string $search_query
+     * @param string $source_index
+     * @param string $sort_field
+     * @param string $sort_order
+     * @param int $limit
+     * @param array $option_weight
+     * @return array
+     * 
+     * @throws ConnectionException
+     * @throws DatabaseException
+     * @throws SphinxQLException
+     */
+    public static function spql_getDataSet(string $search_query, string $source_index, string $sort_field, string $sort_order = 'DESC', int $limit = 5, array $option_weight = []): array
+    {
+        $found_dataset = [];
+        $compiled_request = '';
+        
+        if (empty($source_index)) return $found_dataset;
+        
+        try {
+            $search_request = self::createInstance()
+                ->select()
+                ->from($source_index);
+            
+            if (!empty($sort_field)) {
+                $search_request = $search_request
+                    ->orderBy($sort_field, $sort_order);
+            }
+            
+            if (!empty($option_weight)) {
+                $search_request = $search_request
+                    ->option('field_weights', $option_weight);
+            }
+            
+            if (!is_null($limit) && is_numeric($limit)) {
+                $search_request = $search_request
+                    ->limit($limit);
+            }
+            
+            if (strlen($search_query) > 0) {
+                $search_request = $search_request
+                    ->match(['title'], $search_query);
+            }
+            
+            $search_result = $search_request->execute();
+            
+            while ($row = $search_result->fetchAssoc()) {
+                $found_dataset[] = $row['id'];
+            }
+            
+        } catch (Exception $e) {
+            
+            $meta = SphinxToolkitHelper::showMeta(self::$spql_connection);
+            
+            self::$spql_logger->error(
+                __CLASS__ . '/' . __METHOD__ .
+                " Error fetching data from `{$source_index}` : " . $e->getMessage(),
+                [
+                    $e->getCode(),
+                    htmlspecialchars(urldecode($_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'])),
+                    $search_request->getCompiled(),
+                    $meta
+                ]
+            );
+        }
+        return $found_dataset;
+    } // get_IDs_DataSet()
+    
     
     /**
      *

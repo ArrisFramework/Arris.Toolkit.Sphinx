@@ -238,13 +238,17 @@ trait SphinxToolkitHelper
     /**
      *
      * @param ConnectionInterface $connection
+     * @return array
+     *
      * @throws \Foolz\SphinxQL\Exception\ConnectionException
      * @throws \Foolz\SphinxQL\Exception\DatabaseException
      * @throws \Foolz\SphinxQL\Exception\SphinxQLException
      */
     public static function showMeta(ConnectionInterface $connection)
     {
-        (new Helper($connection))->showMeta()->execute()->fetchAllAssoc();
+        return (new Helper($connection))->showMeta()->execute()->fetchAllAssoc();
     }
+    
+    
     
 }
