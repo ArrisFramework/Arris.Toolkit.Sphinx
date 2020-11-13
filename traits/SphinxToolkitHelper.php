@@ -249,6 +249,18 @@ trait SphinxToolkitHelper
         return (new Helper($connection))->showMeta()->execute()->fetchAllAssoc();
     }
     
+    /**
+     * Возвращает версию поискового движка
+     *
+     * @param ConnectionInterface $connection
+     * @throws \Foolz\SphinxQL\Exception\ConnectionException
+     * @throws \Foolz\SphinxQL\Exception\DatabaseException
+     */
+    public static function getVersion(ConnectionInterface $connection)
+    {
+        $connection->query("show status like 'version%'")->fetchAssoc()['version'];
+    }
+    
     
     
 }

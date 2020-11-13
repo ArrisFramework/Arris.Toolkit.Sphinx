@@ -157,10 +157,18 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
         $sphinx_connection = $this->sphinx_connection;
 
         $chunk_size = $this->rai_options['chunk_length'];
-
-        // проверяем, существует ли индекс
+    
+        if (empty($sphinx_index))
+            throw new Exception("SearchD index: `{$sphinx_index}` not defined", 1);
+        
+        if (empty($mysql_table))
+            throw new Exception("MySQL table: `{$mysql_table}` not defined", 1);
+    
         if (! SphinxToolkitHelper::RTIndexCheckExist($this->sphinx_connection, $sphinx_index))
-            throw new Exception("`{$sphinx_index}` not present", 1);
+            throw new Exception("SearchD index: `{$sphinx_index}` not found", 1);
+    
+        if (! SphinxToolkitHelper::RTIndexCheckExist($this->mysql_connection, $mysql_table))
+            throw new Exception("Source mysql table `{$mysql_table}` not found", 1);
 
         // truncate
         SphinxToolkitHelper::RTIndexTruncate($sphinx_connection, $sphinx_index);
