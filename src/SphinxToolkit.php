@@ -7,8 +7,6 @@ use Exception;
 use Foolz\SphinxQL\Drivers\ConnectionInterface;
 use Foolz\SphinxQL\Exception\ConnectionException;
 use Foolz\SphinxQL\Exception\SphinxQLException;
-use PDO;
-use PDOException;
 use Arris\Toolkit\CLIConsole;
 
 use Foolz\SphinxQL\Drivers\Mysqli\Connection;
@@ -29,12 +27,12 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
     private $rai_options;
 
     /**
-     * @var PDO
+     * @var
      */
     private $mysql_connection;
 
     /**
-     * @var PDO
+     * @var
      */
     private $sphinx_connection;
     
@@ -43,7 +41,7 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
      */
     private $logger;
 
-    public function __construct(PDO $mysql_connection, PDO $sphinx_connection, LoggerInterface $logger = null)
+    public function __construct($mysql_connection, $sphinx_connection, LoggerInterface $logger = null)
     {
         $this->mysql_connection = $mysql_connection;
         $this->sphinx_connection = $sphinx_connection;
@@ -79,10 +77,20 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
     {
         $mysql_connection = $this->mysql_connection;
         $sphinx_connection = $this->sphinx_connection;
+        
+        if (empty($sphinx_index)) {
+            throw new Exception("Requested update of undefined index", 1);
+        }
+        
+        if (empty($mysql_table)) {
+            throw new Exception('Not defined source SQL table', 1);
+        }
 
         // проверяем, существует ли индекс
-        if (! SphinxToolkitHelper::RTIndexCheckExist($this->sphinx_connection, $sphinx_index))
+        if (! SphinxToolkitHelper::RTIndexCheckExist($this->sphinx_connection, $sphinx_index)) {
             throw new Exception("`{$sphinx_index}` not present", 1);
+        }
+
 
         $chunk_size = $this->rai_options['chunk_length'];
 
@@ -93,18 +101,21 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
         $total_count = SphinxToolkitHelper::MySQL_GetRowsCount($mysql_connection, $mysql_table, $condition);
         $total_updated = 0;
 
-        if ($this->rai_options['log_before_index'])
+        if ($this->rai_options['log_before_index']) {
             CLIConsole::say("<font color='yellow'>[{$sphinx_index}]</font> index : ", false);
+        }
 
-        if ($this->rai_options['log_total_rows_found'])
+        if ($this->rai_options['log_total_rows_found']) {
             CLIConsole::say("<font color='green'>{$total_count}</font> elements found for rebuild.");
+        }
 
         // iterate chunks
-        for ($i = 0; $i < ceil($total_count / $chunk_size); $i++) {
+        for ($i = 0; $i < \ceil($total_count / $chunk_size); $i++) {
             $offset = $i * $chunk_size;
 
-            if ($this->rai_options['log_before_chunk'])
+            if ($this->rai_options['log_before_chunk']) {
                 CLIConsole::say("Rebuilding elements from <font color='green'>{$offset}</font>, <font color='yellow'>{$chunk_size}</font> count... " , false);
+            }
 
             $query_chunk_data = "SELECT * FROM {$mysql_table} ";
             $query_chunk_data.= $condition != '' ? " WHERE {$condition} " : '';
@@ -114,8 +125,9 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
 
             // iterate inside chunk
             while ($item = $sth->fetch()) {
-                if ($this->rai_options['log_rows_inside_chunk'])
+                if ($this->rai_options['log_rows_inside_chunk']) {
                     CLIConsole::say("{$mysql_table}: {$item['id']}");
+                }
 
                 $update_set = $make_updateset_method($item);
 
@@ -144,8 +156,9 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
                 CLIConsole::say("I woke up!");
             }
         } // for
-        if ($this->rai_options['log_after_index'])
+        if ($this->rai_options['log_after_index']) {
             CLIConsole::say("Total updated <strong>{$total_updated}</strong> elements for <font color='yellow'>{$sphinx_index}</font> RT-index. <br>");
+        }
 
         return $total_updated;
     } // rebuildAbstractIndex
@@ -158,17 +171,21 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
 
         $chunk_size = $this->rai_options['chunk_length'];
     
-        if (empty($sphinx_index))
+        if (empty($sphinx_index)) {
             throw new Exception("SearchD index: `{$sphinx_index}` not defined", 1);
+        }
         
-        if (empty($mysql_table))
+        if (empty($mysql_table)) {
             throw new Exception("MySQL table: `{$mysql_table}` not defined", 1);
+        }
     
-        if (! SphinxToolkitHelper::RTIndexCheckExist($this->sphinx_connection, $sphinx_index))
+        if (! SphinxToolkitHelper::RTIndexCheckExist($this->sphinx_connection, $sphinx_index)) {
             throw new Exception("SearchD index: `{$sphinx_index}` not found", 1);
+        }
     
-        if (! SphinxToolkitHelper::RTIndexCheckExist($this->mysql_connection, $mysql_table))
+        if (! SphinxToolkitHelper::RTIndexCheckExist($this->mysql_connection, $mysql_table)) {
             throw new Exception("Source mysql table `{$mysql_table}` not found", 1);
+        }
 
         // truncate
         SphinxToolkitHelper::RTIndexTruncate($sphinx_connection, $sphinx_index);
@@ -177,18 +194,21 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
         $total_count = SphinxToolkitHelper::MySQL_GetRowsCount($mysql_connection, $mysql_table, $condition);
         $total_updated = 0;
 
-        if ($this->rai_options['log_before_index'])
+        if ($this->rai_options['log_before_index']) {
             CLIConsole::say("<font color='yellow'>[{$sphinx_index}]</font> index : ", false);
+        }
 
-        if ($this->rai_options['log_total_rows_found'])
+        if ($this->rai_options['log_total_rows_found']) {
             CLIConsole::say("<font color='green'>{$total_count}</font> elements found for rebuild.");
+        }
 
         // iterate chunks
         for ($i = 0; $i < ceil($total_count / $chunk_size); $i++) {
             $offset = $i * $chunk_size;
 
-            if ($this->rai_options['log_before_chunk'])
+            if ($this->rai_options['log_before_chunk']) {
                 CLIConsole::say("Rebuilding elements from <font color='green'>{$offset}</font>, <font color='yellow'>{$chunk_size}</font> count... " , false);
+            }
 
             $query_chunk_data = " SELECT * FROM {$mysql_table} ";
             $query_chunk_data.= $condition != '' ? " WHERE {$condition} " : '';
@@ -202,8 +222,9 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
 
             // iterate inside chunk
             while ($item = $sth->fetch()) {
-                if ($this->rai_options['log_rows_inside_chunk'])
+                if ($this->rai_options['log_rows_inside_chunk']) {
                     CLIConsole::say("{$mysql_table}: {$item['id']}");
+                }
 
                 $update_set = $make_updateset_method($item);
 
@@ -228,8 +249,10 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
                 CLIConsole::say("I woke up!");
             }
         } // for
-        if ($this->rai_options['log_after_index'])
+
+        if ($this->rai_options['log_after_index']) {
             CLIConsole::say("Total updated <strong>{$total_updated}</strong> elements for <font color='yellow'>{$sphinx_index}</font> RT-index. <br>");
+        }
 
         return $total_updated;
     } // rebuildAbstractIndexMVA
@@ -251,22 +274,22 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
     {
         $query = "REPLACE INTO `{$table}` (";
 
-        $dataset_keys = array_keys($dataset);
+        $dataset_keys = \array_keys($dataset);
 
-        $query .= implode(', ', array_map(function ($i){
+        $query .= \implode(', ', \array_map(function ($i){
             return "`{$i}`";
         }, $dataset_keys));
 
         $query .= " ) VALUES ( ";
 
-        $query .= implode(', ', array_map(function ($i) use ($mva_attributes, $dataset){
-            return in_array($i, $mva_attributes) ? "({$dataset[$i]})" : ":{$i}";
+        $query .= \implode(', ', \array_map(function ($i) use ($mva_attributes, $dataset){
+            return \in_array($i, $mva_attributes) ? "({$dataset[$i]})" : ":{$i}";
         }, $dataset_keys));
 
         $query .= " ) ";
 
-        $new_dataset = array_filter($dataset, function ($value, $key) use ($mva_attributes) {
-            return !in_array($key, $mva_attributes);
+        $new_dataset = \array_filter($dataset, function ($value, $key) use ($mva_attributes) {
+            return !\in_array($key, $mva_attributes);
         }, ARRAY_FILTER_USE_BOTH);
 
         return [
@@ -281,17 +304,17 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
      */
     private static function buildReplaceQuery(string $table, array $dataset):string
     {
-        $dataset_keys = array_keys($dataset);
+        $dataset_keys = \array_keys($dataset);
 
         $query = "REPLACE INTO `{$table}` (";
 
-        $query.= implode(', ', array_map(function ($i){
+        $query.= \implode(', ', \array_map(function ($i){
             return "`{$i}`";
         }, $dataset_keys));
 
         $query.= " ) VALUES ( ";
 
-        $query.= implode(', ', array_map(function ($i){
+        $query.= \implode(', ', \array_map(function ($i){
             return ":{$i}";
         }, $dataset_keys));
 
@@ -407,7 +430,9 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
      */
     public static function rt_ReplaceIndex(string $index_name, array $updateset)
     {
-        if (empty($updateset)) return null;
+        if (empty($updateset)) {
+            return null;
+        }
 
         return self::createInstance()
             ->replace()
@@ -421,7 +446,9 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
      */
     public static function rt_UpdateIndex(string $index_name, array $updateset)
     {
-        if (empty($updateset)) return null;
+        if (empty($updateset)) {
+            return null;
+        }
 
         return self::createInstance()
             ->update($index_name)
@@ -435,7 +462,9 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
      */
     public static function rt_DeleteIndex(string $index_name, string $field, $field_value = null)
     {
-        if (is_null($field_value)) return null;
+        if (is_null($field_value)) {
+            return null;
+        }
 
         return self::createInstance()
             ->delete()
@@ -449,7 +478,9 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
      */
     public static function rt_DeleteIndexMatch(string $index_name, string $field, $field_value = '')
     {
-        if (is_null($field_value)) return null;
+        if (is_null($field_value)) {
+            return null;
+        }
     
         return self::createInstance()
             ->delete()
@@ -463,7 +494,10 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
      */
     public static function rt_TruncateIndex(string $index_name, bool $is_reconfigure = true)
     {
-        if (empty($index_name)) return false;
+        if (empty($index_name)) {
+            return false;
+        }
+
         $with = $is_reconfigure ? 'WITH RECONFIGURE' : '';
         
         return (bool)self::createInstance()->query("TRUNCATE RTINDEX {$index_name} {$with}");
@@ -472,7 +506,7 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
     /**
      * @inheritDoc
      */
-    public static function rt_RebuildAbstractIndex(PDO $pdo_connection, string $sql_source_table, string $sphinx_index, Closure $make_updateset_method, string $condition = '')
+    public static function rt_RebuildAbstractIndex($pdo_connection, string $sql_source_table, string $sphinx_index, Closure $make_updateset_method, string $condition = '')
     {
         $chunk_size = self::$spql_options['chunk_length'];
 
@@ -485,15 +519,21 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
         
         $total_updated = 0;
 
-        if (self::$spql_options['log_before_index']) CLIConsole::say("<font color='yellow'>[{$sphinx_index}]</font> index : ", false);
+        if (self::$spql_options['log_before_index']) {
+            CLIConsole::say("<font color='yellow'>[{$sphinx_index}]</font> index : ", false);
+        }
 
-        if (self::$spql_options['log_total_rows_found']) CLIConsole::say("<font color='green'>{$total_count}</font> elements found for rebuild.");
+        if (self::$spql_options['log_total_rows_found']) {
+            CLIConsole::say("<font color='green'>{$total_count}</font> elements found for rebuild.");
+        }
 
         // iterate chunks
         for ($i = 0; $i < ceil($total_count / $chunk_size); $i++) {
             $offset = $i * $chunk_size;
 
-            if (self::$spql_options['log_before_chunk']) CLIConsole::say("Rebuilding elements from <font color='green'>{$offset}</font>, <font color='yellow'>{$chunk_size}</font> count... " , false);
+            if (self::$spql_options['log_before_chunk']) {
+                CLIConsole::say("Rebuilding elements from <font color='green'>{$offset}</font>, <font color='yellow'>{$chunk_size}</font> count... " , false);
+            }
 
             $query_chunk_data = "SELECT * FROM {$sql_source_table} ";
             $query_chunk_data.= $condition != '' ? " WHERE {$condition} " : ' ';
@@ -503,7 +543,9 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
 
             // iterate inside chunk
             while ($item = $sth->fetch()) {
-                if (self::$spql_options['log_rows_inside_chunk']) CLIConsole::say("{$sql_source_table}: {$item['id']}");
+                if (self::$spql_options['log_rows_inside_chunk']) {
+                    CLIConsole::say("{$sql_source_table}: {$item['id']}");
+                }
 
                 $update_set = $make_updateset_method($item); // call closure
 
@@ -527,7 +569,9 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
             }
         } // for
         
-        if (self::$spql_options['log_after_index']) CLIConsole::say("Total updated <strong>{$total_updated}</strong> elements for <font color='yellow'>{$sphinx_index}</font> RT-index. <br>");
+        if (self::$spql_options['log_after_index']) {
+            CLIConsole::say("Total updated <strong>{$total_updated}</strong> elements for <font color='yellow'>{$sphinx_index}</font> RT-index. <br>");
+        }
 
         return $total_updated;
     }
@@ -553,7 +597,9 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
         $found_dataset = [];
         $compiled_request = '';
         
-        if (empty($source_index)) return $found_dataset;
+        if (empty($source_index)) {
+            return $found_dataset;
+        }
         
         try {
             $search_request = self::createInstance()
@@ -570,12 +616,12 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
                     ->option('field_weights', $option_weight);
             }
             
-            if (!is_null($limit) && is_numeric($limit)) {
+            if (!\is_null($limit) && \is_numeric($limit)) {
                 $search_request = $search_request
                     ->limit($limit);
             }
             
-            if (strlen($search_query) > 0) {
+            if (\strlen($search_query) > 0) {
                 $search_request = $search_request
                     ->match(['title'], $search_query);
             }
@@ -595,7 +641,7 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
                 " Error fetching data from `{$source_index}` : " . $e->getMessage(),
                 [
                     $e->getCode(),
-                    htmlspecialchars(urldecode($_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'])),
+                    \htmlspecialchars(\urldecode($_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'])),
                     $search_request->getCompiled(),
                     $meta
                 ]
@@ -616,7 +662,9 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
      */
     private static function internal_ReplaceIndex(string $index_name, array $updateset)
     {
-        if (empty($updateset)) return null;
+        if (empty($updateset)) {
+            return null;
+        }
 
         return self::getInstance(self::$spql_connection)
             ->replace()

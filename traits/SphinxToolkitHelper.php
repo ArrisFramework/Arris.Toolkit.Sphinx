@@ -4,7 +4,6 @@ namespace Arris\Toolkit;
 
 use Foolz\SphinxQL\Drivers\ConnectionInterface;
 use Foolz\SphinxQL\Helper;
-use PDO;
 
 /**
  * Trait SphinxToolkitHelper
@@ -24,11 +23,15 @@ trait SphinxToolkitHelper
      */
     public static function setOption(array $options = [], $key = null, $default_value = null)
     {
-        if (!is_array($options)) return $default_value;
+        if (!\is_array($options)) {
+            return $default_value;
+        }
     
-        if (is_null($key)) return $default_value;
+        if (\is_null($key)) {
+            return $default_value;
+        }
     
-        return array_key_exists($key, $options) ? $options[ $key ] : $default_value;
+        return \array_key_exists($key, $options) ? $options[ $key ] : $default_value;
     }
     
     /**
@@ -49,17 +52,17 @@ trait SphinxToolkitHelper
     {
         //strip tags, if desired
         if ($strip_html) {
-            $input = strip_tags($input);
+            $input = \strip_tags($input);
         }
     
         //no need to trim, already shorter than trim length
-        if (mb_strlen($input) <= $length) {
+        if (\mb_strlen($input) <= $length) {
             return $input;
         }
     
         //find last space within length
-        $last_space = mb_strrpos(mb_substr($input, 0, $length), ' ');
-        $trimmed_text = mb_substr($input, 0, $last_space);
+        $last_space = \mb_strrpos(mb_substr($input, 0, $length), ' ');
+        $trimmed_text = \mb_substr($input, 0, $last_space);
     
         //add ellipses (...)
         if ($ellipses) {
@@ -83,45 +86,46 @@ trait SphinxToolkitHelper
      */
     public static function mb_str_replace($search, $replace, $subject, &$count = 0)
     {
-        if (!is_array($search) && is_array($replace)) {
+        if (!\is_array($search) && \is_array($replace)) {
             return false;
         }
-        if (is_array($subject)) {
+
+        if (\is_array($subject)) {
             // call mb_replace for each single string in $subject
             foreach ($subject as &$string) {
                 $string = SphinxToolkitHelper::mb_str_replace($search, $replace, $string, $c);
                 $count += $c;
             }
-        } elseif (is_array($search)) {
-            if (!is_array($replace)) {
+        } elseif (\is_array($search)) {
+            if (!\is_array($replace)) {
                 foreach ($search as &$string) {
                     $subject = SphinxToolkitHelper::mb_str_replace($string, $replace, $subject, $c);
                     $count += $c;
                 }
             } else {
-                $n = max(count($search), count($replace));
+                $n = \max(\count($search), \count($replace));
                 while ($n--) {
-                    $subject = SphinxToolkitHelper::mb_str_replace(current($search), current($replace), $subject, $c);
+                    $subject = SphinxToolkitHelper::mb_str_replace(\current($search), \current($replace), $subject, $c);
                     $count += $c;
-                    next($search);
-                    next($replace);
+                    \next($search);
+                    \next($replace);
                 }
             }
         } else {
-            $parts = mb_split(preg_quote($search), $subject);
-            $count = count($parts) - 1;
-            $subject = implode($replace, $parts);
+            $parts = \mb_split(preg_quote($search), $subject);
+            $count = \count($parts) - 1;
+            $subject = \implode($replace, $parts);
         }
         return $subject;
     }
     
     /**
-     * @param PDO $connection
+     * @param $connection
      * @param $index
      *
      * @return array
      */
-    public static function RTIndexGetStatus(PDO $connection, $index)
+    public static function RTIndexGetStatus($connection, $index)
     {
         $query = "SHOW INDEX {$index} STATUS";
         
@@ -134,8 +138,8 @@ trait SphinxToolkitHelper
             'found_rows_1min', 'found_rows_5min', 'found_rows_15min', 'found_rows_total'
         ];
         foreach ($json_set as $key) {
-            if (array_key_exists($key, $set)) {
-                $set[$key] = json_decode($set[$key], true);
+            if (\array_key_exists($key, $set)) {
+                $set[$key] = \json_decode($set[$key], true);
             }
         }
         
@@ -143,44 +147,46 @@ trait SphinxToolkitHelper
     }
     
     /**
-     * @param PDO $connection
+     * @param $connection
      * @param $index
      * @return false|\PDOStatement
      */
-    public static function RTIndexOptimize(PDO $connection, $index)
+    public static function RTIndexOptimize($connection, $index)
     {
         $query = "OPTIMIZE INDEX {$index}";
         return $connection->query($query);
     }
     
     /**
-     * @param PDO $connection
+     * @param $connection
      * @param $index
      * @param bool $reconfigure
      * @return bool
      */
-    public static function RTIndexTruncate(PDO $connection, $index, $reconfigure = true)
+    public static function RTIndexTruncate($connection, $index, bool $reconfigure = true)
     {
         $with = $reconfigure ? 'WITH RECONFIGURE' : '';
         return (bool)$connection->query("TRUNCATE RTINDEX {$index} {$with}");
     }
     
     /**
-     * @param PDO $connection
+     * @param $connection
      * @param $index
      * @return bool
      */
-    public static function RTIndexCheckExist(PDO $connection, $index)
+    public static function RTIndexCheckExist($connection, $index)
     {
         $index_definition = $connection->query("SHOW TABLES LIKE '{$index}' ")->fetchAll();
     
-        return count($index_definition) > 0;
+        return \count($index_definition) > 0;
     }
     
-    public static function MySQL_GetRowsCount(PDO $pdo, string $table, string $condition)
+    public static function MySQL_GetRowsCount($pdo, string $table, string $condition)
     {
         $query = "SELECT COUNT(*) AS cnt FROM {$table}";
-        if ($condition != '') $query .= " WHERE {$condition}";
+        if ($condition != '') {
+            $query .= " WHERE {$condition}";
+        }
     
         return $pdo->query($query)->fetchColumn();
     }
@@ -207,6 +213,7 @@ trait SphinxToolkitHelper
             
             // Строка, вставляемая после ключевого слова. По умолчанию "</strong>".
             'after_match'   =>  SphinxToolkitHelper::setOption($options, 'after_match', '</strong>'),
+
             // Строка, вставляемая между частями фрагмента. по умолчанию "...".
             'chunk_separator' => '...',
             
@@ -224,11 +231,11 @@ trait SphinxToolkitHelper
         
         ];
         
-        $target = strip_tags($source);
+        $target = \strip_tags($source);
         
         $target = SphinxToolkitHelper::mb_str_replace($needle, $opts['before_match'] . $needle . $opts['after_match'], $target);
         
-        if (($opts['limit'] > 0) && ( mb_strlen($source) > $opts['limit'] )) {
+        if (($opts['limit'] > 0) && ( \mb_strlen($source) > $opts['limit'] )) {
             $target = SphinxToolkitHelper::mb_trim_text($target, $opts['limit'] ,true,false, $opts['chunk_separator']);
         }
         
