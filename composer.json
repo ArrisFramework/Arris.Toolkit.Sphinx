@@ -18,7 +18,7 @@
         "ext-json": "*",
         "foolz/sphinxql-query-builder": "^3.0.2",
         "psr/log": "^1.1",
-        "karelwintersky/arris.toolkit.cli-console": "^0.9.0"
+        "karelwintersky/arris.toolkit.cli-console": "^1"
     },
     "autoload": {
         "psr-4": {

@@ -5,21 +5,17 @@ namespace Arris\Toolkit;
 use Closure;
 use Exception;
 use Foolz\SphinxQL\Drivers\ConnectionInterface;
-use Foolz\SphinxQL\Exception\ConnectionException;
-use Foolz\SphinxQL\Exception\SphinxQLException;
-use Arris\Toolkit\CLIConsole;
-
 use Foolz\SphinxQL\Drivers\Mysqli\Connection;
 use Foolz\SphinxQL\Drivers\ResultSetInterface;
+use Foolz\SphinxQL\Exception\ConnectionException;
 use Foolz\SphinxQL\Exception\DatabaseException;
-use Foolz\SphinxQL\Helper;
+use Foolz\SphinxQL\Exception\SphinxQLException;
 use Foolz\SphinxQL\SphinxQL;
 use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 
 class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzInterface
 {
-    use SphinxToolkitHelper;
-    
     /* =========================== DYNAMIC IMPLEMENTATION ================================ */
     /**
      * @var array
@@ -45,7 +41,8 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
     {
         $this->mysql_connection = $mysql_connection;
         $this->sphinx_connection = $sphinx_connection;
-        $this->logger = $logger;
+
+        $this->logger = is_null($logger) ? new NullLogger() : $logger;
     }
 
     public function setRebuildIndexOptions(array $options = []):array
@@ -88,7 +85,7 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
 
         // проверяем, существует ли индекс
         if (! SphinxToolkitHelper::RTIndexCheckExist($this->sphinx_connection, $sphinx_index)) {
-            throw new Exception("`{$sphinx_index}` not present", 1);
+            throw new Exception("Index [{$sphinx_index}] not present", 1);
         }
 
 
@@ -172,19 +169,19 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
         $chunk_size = $this->rai_options['chunk_length'];
     
         if (empty($sphinx_index)) {
-            throw new Exception("SearchD index: `{$sphinx_index}` not defined", 1);
+            throw new Exception("SearchD index: [{$sphinx_index}] not defined", 1);
         }
         
         if (empty($mysql_table)) {
-            throw new Exception("MySQL table: `{$mysql_table}` not defined", 1);
+            throw new Exception("MySQL table: [{$mysql_table}] not defined", 1);
         }
     
         if (! SphinxToolkitHelper::RTIndexCheckExist($this->sphinx_connection, $sphinx_index)) {
-            throw new Exception("SearchD index: `{$sphinx_index}` not found", 1);
+            throw new Exception("SearchD index: [{$sphinx_index}] not found", 1);
         }
     
         if (! SphinxToolkitHelper::RTIndexCheckExist($this->mysql_connection, $mysql_table)) {
-            throw new Exception("Source mysql table `{$mysql_table}` not found", 1);
+            throw new Exception("Source mysql table [{$mysql_table}] not found", 1);
         }
 
         // truncate
@@ -272,12 +269,12 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
      */
     private static function buildReplaceQueryMVA(string $table, array $dataset, array $mva_attributes):array
     {
-        $query = "REPLACE INTO `{$table}` (";
+        $query = "REPLACE INTO {$table} (";
 
         $dataset_keys = \array_keys($dataset);
 
         $query .= \implode(', ', \array_map(function ($i){
-            return "`{$i}`";
+            return "{$i}";
         }, $dataset_keys));
 
         $query .= " ) VALUES ( ";
@@ -306,10 +303,10 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
     {
         $dataset_keys = \array_keys($dataset);
 
-        $query = "REPLACE INTO `{$table}` (";
+        $query = "REPLACE INTO {$table} (";
 
         $query.= \implode(', ', \array_map(function ($i){
-            return "`{$i}`";
+            return "{$i}";
         }, $dataset_keys));
 
         $query.= " ) VALUES ( ";
@@ -366,7 +363,7 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
     /**
      * @inheritDoc
      */
-    public static function init(string $sphinx_connection_host, string $sphinx_connection_port, $options = [], LoggerInterface $logger = null)
+    public static function init(string $sphinx_connection_host, string $sphinx_connection_port, array $options = [], LoggerInterface $logger = null)
     {
         self::$spql_connection_host = $sphinx_connection_host;
         self::$spql_connection_port = $sphinx_connection_port;
@@ -389,13 +386,13 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
         self::$spql_options['log_before_index']      = SphinxToolkitHelper::setOption($options, 'log_before_index', true);
         self::$spql_options['log_after_index']       = SphinxToolkitHelper::setOption($options, 'log_after_index', true);
         
-        self::$spql_logger = $logger;
+        self::$spql_logger = is_null($logger) ? new NullLogger() : $logger;
     }
     
     /**
      * @inheritDoc
      */
-    public static function initConnection()
+    public static function initConnection(): ConnectionInterface
     {
         $connection = new Connection();
         $connection->setParams([
@@ -409,7 +406,7 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
     /**
      * @inheritDoc
      */
-    public static function getInstance($connection)
+    public static function getInstance($connection): SphinxQL
     {
         return (new SphinxQL($connection));
     }
@@ -417,7 +414,7 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
     /**
      * @inheritDoc
      */
-    public static function createInstance()
+    public static function createInstance(): SphinxQL
     {
         self::$spql_connection = self::initConnection();
         self::$spql_instance = self::getInstance(self::$spql_connection);
@@ -428,39 +425,39 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
     /**
      * @inheritDoc
      */
-    public static function rt_ReplaceIndex(string $index_name, array $updateset)
+    public static function rt_ReplaceIndex(string $index_name, array $dataset = []): ?ResultSetInterface
     {
-        if (empty($updateset)) {
+        if (empty($dataset)) {
             return null;
         }
 
         return self::createInstance()
             ->replace()
             ->into($index_name)
-            ->set($updateset)
+            ->set($dataset)
             ->execute();
     }
     
     /**
      * @inheritDoc
      */
-    public static function rt_UpdateIndex(string $index_name, array $updateset)
+    public static function rt_UpdateIndex(string $index_name, array $dataset = []): ?ResultSetInterface
     {
-        if (empty($updateset)) {
+        if (empty($dataset)) {
             return null;
         }
 
         return self::createInstance()
             ->update($index_name)
             ->into($index_name)
-            ->set($updateset)
+            ->set($dataset)
             ->execute();
     }
     
     /**
      * @inheritDoc
      */
-    public static function rt_DeleteIndex(string $index_name, string $field, $field_value = null)
+    public static function rt_DeleteIndex(string $index_name, string $field, $field_value = null): ?ResultSetInterface
     {
         if (is_null($field_value)) {
             return null;
@@ -476,7 +473,7 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
     /**
      * @inheritDoc
      */
-    public static function rt_DeleteIndexMatch(string $index_name, string $field, $field_value = '')
+    public static function rt_DeleteIndexMatch(string $index_name, string $field, string $field_value = ''): ?ResultSetInterface
     {
         if (is_null($field_value)) {
             return null;
@@ -492,7 +489,7 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
     /**
      * @inheritDoc
      */
-    public static function rt_TruncateIndex(string $index_name, bool $is_reconfigure = true)
+    public static function rt_TruncateIndex(string $index_name, bool $is_reconfigure = true): bool
     {
         if (empty($index_name)) {
             return false;
@@ -638,7 +635,7 @@ class SphinxToolkit implements SphinxToolkitMysqliInterface, SphinxToolkitFoolzI
             
             self::$spql_logger->error(
                 __CLASS__ . '/' . __METHOD__ .
-                " Error fetching data from `{$source_index}` : " . $e->getMessage(),
+                " Error fetching data from [{$source_index}] : " . $e->getMessage(),
                 [
                     $e->getCode(),
                     \htmlspecialchars(\urldecode($_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'])),

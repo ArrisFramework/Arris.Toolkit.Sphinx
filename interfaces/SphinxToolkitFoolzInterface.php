@@ -10,6 +10,7 @@ use Foolz\SphinxQL\Exception\DatabaseException;
 use Foolz\SphinxQL\Exception\SphinxQLException;
 use Foolz\SphinxQL\SphinxQL;
 use PDO;
+use Psr\Log\LoggerInterface;
 
 /**
  * Interface __SphinxToolkitFoolzInterface
@@ -26,49 +27,50 @@ interface SphinxToolkitFoolzInterface {
      * @param string $sphinx_connection_host
      * @param string $sphinx_connection_port
      * @param array $options
+     * @param LoggerInterface|null $logger
      */
-    public static function init(string $sphinx_connection_host, string $sphinx_connection_port, $options = []);
+    public static function init(string $sphinx_connection_host, string $sphinx_connection_port, array $options = [], LoggerInterface $logger = null);
 
     /**
      * Создает коннекшен и устанавливает параметры подключения: хост и порт
      *
      * @return ConnectionInterface
      */
-    public static function initConnection();
+    public static function initConnection(): ConnectionInterface;
 
     /**
      * Создает инстанс SphinxQL (для однократного обновления)
      *
      * @return SphinxQL
      */
-    public static function createInstance();
+    public static function createInstance(): SphinxQL;
 
     /**
      * Обновляет (UPDATE) реалтайм-индекс по набору данных
      * с созданием коннекшена "сейчас"
      *
      * @param string $index_name
-     * @param array $updateset
+     * @param array $dataset
      * @return ResultSetInterface|null
      *
      * @throws DatabaseException
      * @throws ConnectionException
      * @throws SphinxQLException
      */
-    public static function rt_UpdateIndex(string $index_name, array $updateset);
+    public static function rt_UpdateIndex(string $index_name, array $dataset): ?ResultSetInterface;
 
     /**
      * Замещает (REPLACE) реалтайм-индекс по набору данных
      *
      * @param string $index_name
-     * @param array $updateset
+     * @param array $dataset
      * @return ResultSetInterface|null
      *
      * @throws DatabaseException
      * @throws ConnectionException
      * @throws SphinxQLException
      */
-    public static function rt_ReplaceIndex(string $index_name, array $updateset);
+    public static function rt_ReplaceIndex(string $index_name, array $dataset = []): ?ResultSetInterface;
 
     /**
      * Удаляет строку реалтайм-индекса по значению нестрокового поля.
@@ -86,7 +88,7 @@ interface SphinxToolkitFoolzInterface {
      * @throws ConnectionException
      * @throws SphinxQLException
      */
-    public static function rt_DeleteIndex(string $index_name, string $field, $field_value = null);
+    public static function rt_DeleteIndex(string $index_name, string $field, $field_value = null): ?ResultSetInterface;
     
     /**
      * Удаляет строку реалтайм-индекса по значению текстового поля, например '@title поликлиника'
@@ -101,7 +103,7 @@ interface SphinxToolkitFoolzInterface {
      * @throws ConnectionException
      * @throws SphinxQLException
      */
-    public static function rt_DeleteIndexMatch(string $index_name, string $field, $field_value = '');
+    public static function rt_DeleteIndexMatch(string $index_name, string $field, string $field_value = ''): ?ResultSetInterface;
     
     /**
      * Делает truncate index с реконфигурацией по умолчанию
@@ -110,7 +112,7 @@ interface SphinxToolkitFoolzInterface {
      * @param bool $is_reconfigure
      * @return bool
      */
-    public static function rt_TruncateIndex(string $index_name, bool $is_reconfigure = true);
+    public static function rt_TruncateIndex(string $index_name, bool $is_reconfigure = true): bool;
     
     /**
      * @param PDO $pdo_connection
@@ -131,6 +133,6 @@ interface SphinxToolkitFoolzInterface {
      * @param ConnectionInterface $connection
      * @return SphinxQL
      */
-    public static function getInstance($connection);
+    public static function getInstance($connection): SphinxQL;
     
 }

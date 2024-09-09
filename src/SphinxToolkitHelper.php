@@ -12,7 +12,7 @@ use Foolz\SphinxQL\Helper;
  *
  * @package Arris\Toolkit
  */
-trait SphinxToolkitHelper
+class SphinxToolkitHelper
 {
     /**
      *
@@ -48,7 +48,7 @@ trait SphinxToolkitHelper
      * еще есть вариант: https://stackoverflow.com/questions/8286082/truncate-a-string-in-php-without-cutting-words (но без обработки тегов)
      * https://www.php.net/manual/ru/function.wordwrap.php - см комментарии
      */
-    public static function mb_trim_text($input, $length, $ellipses = true, $strip_html = true, $ellipses_text = '...'):string
+    public static function mb_trim_text(string $input, int $length, bool $ellipses = true, bool $strip_html = true, string $ellipses_text = '...'):string
     {
         //strip tags, if desired
         if ($strip_html) {
@@ -77,14 +77,14 @@ trait SphinxToolkitHelper
      *
      * @param string|string[] $search  the string to be searched
      * @param string|string[] $replace the replacement string
-     * @param string          $subject the source string
+     * @param string $subject the source string
      * @param int             &$count  number of matches found
      *
      * @return string replaced string
      * @author Rodney Rehm, imported from Smarty
      *
      */
-    public static function mb_str_replace($search, $replace, $subject, &$count = 0)
+    public static function mb_str_replace($search, $replace, string $subject, int &$count = 0)
     {
         if (!\is_array($search) && \is_array($replace)) {
             return false;
@@ -125,7 +125,7 @@ trait SphinxToolkitHelper
      *
      * @return array
      */
-    public static function RTIndexGetStatus($connection, $index)
+    public static function RTIndexGetStatus($connection, $index): array
     {
         $query = "SHOW INDEX {$index} STATUS";
         
@@ -163,7 +163,7 @@ trait SphinxToolkitHelper
      * @param bool $reconfigure
      * @return bool
      */
-    public static function RTIndexTruncate($connection, $index, bool $reconfigure = true)
+    public static function RTIndexTruncate($connection, $index, bool $reconfigure = true): bool
     {
         $with = $reconfigure ? 'WITH RECONFIGURE' : '';
         return (bool)$connection->query("TRUNCATE RTINDEX {$index} {$with}");
@@ -251,7 +251,7 @@ trait SphinxToolkitHelper
      * @throws \Foolz\SphinxQL\Exception\DatabaseException
      * @throws \Foolz\SphinxQL\Exception\SphinxQLException
      */
-    public static function showMeta(ConnectionInterface $connection)
+    public static function showMeta(ConnectionInterface $connection): array
     {
         return (new Helper($connection))->showMeta()->execute()->fetchAllAssoc();
     }
@@ -265,7 +265,7 @@ trait SphinxToolkitHelper
      */
     public static function getVersion(ConnectionInterface $connection)
     {
-        $connection->query("show status like 'version%'")->fetchAssoc()['version'];
+        $connection->query("SHOW STATUS LIKE 'version%'")->fetchAssoc()['version'];
     }
     
     
